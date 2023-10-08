@@ -1,18 +1,57 @@
 import { Delaunay } from "d3-delaunay";
 import seedrandom from 'seedrandom';
 import { createNoise2D } from 'simplex-noise';
+import alea from 'alea';
 
 export default class MainScene extends Phaser.Scene {
+
+    settingsScene:any
 
     constructor() {
         super({ key: 'MainScene' })
     }
 
     create() {
-        const jsonData = require('../../assets/world100.json')
-        const SCALE_FACTOR = 100;  // Adjust this constant to scale the points
-        const debug = false
+        this.scene.launch('SettingsScene'); // Start the SettingsScene
+        this.settingsScene = this.scene.get('SettingsScene'); // Get the SettingsScene
+        this.createMap(false, false, require('../../assets/world100.json'))
+    }
 
+    createMap(debug, rivers, jsonData) {
+        this.clearMap();
+        
+        function calculateScaleFactorForDesiredRange(data: any[], desiredRange: number): number {
+            // Calculate the minimum and maximum x and y coordinates of the original points
+            let minX = Number.POSITIVE_INFINITY;
+            let minY = Number.POSITIVE_INFINITY;
+            let maxX = Number.NEGATIVE_INFINITY;
+            let maxY = Number.NEGATIVE_INFINITY;
+        
+            for (const point of data) {
+                const originalX = point.x; // Replace with the appropriate property names
+                const originalY = point.y;
+        
+                minX = Math.min(minX, originalX);
+                minY = Math.min(minY, originalY);
+                maxX = Math.max(maxX, originalX);
+                maxY = Math.max(maxY, originalY);
+            }
+        
+            // Calculate the range of x and y coordinates for the original points
+            const rangeX = maxX - minX;
+            const rangeY = maxY - minY;
+        
+            // Calculate the scale factor based on the desired range
+            const scaleFactor = desiredRange / Math.max(rangeX, rangeY);
+        
+            return scaleFactor;
+        }
+        
+        const desiredRange = 950; // Replace with your desired range
+        const SCALE_FACTOR = calculateScaleFactorForDesiredRange(jsonData, desiredRange);
+        
+
+        
         // Function to find downhill path for a river
         const findDownhillPath = (startIdx: number, points: any[], voronoi: any) => {
             const visited = new Set<number>();
@@ -113,7 +152,7 @@ export default class MainScene extends Phaser.Scene {
 
         // Create noise texture
         const createNoiseTexture = (width: number, height: number, noiseScale: number, alpha: number, intensity: number) => {
-            const simplex = createNoise2D();
+            const simplex = createNoise2D(alea(''));
 
             const canvas = document.createElement('canvas');
             canvas.width = width;
@@ -153,9 +192,7 @@ export default class MainScene extends Phaser.Scene {
                 highlightGraphics.fillPath();
             });
         
-            zone.on('pointerout', () => {
-                hoverText.setVisible(false);
-        
+            zone.on('pointerout', () => {        
                 // Clear the highlighted polygon
                 highlightGraphics.clear();
             });
@@ -176,11 +213,17 @@ export default class MainScene extends Phaser.Scene {
         const debugCircleGraphics = this.add.graphics({ lineStyle: { width: 1, color: 0xff0000 }, fillStyle: { color: 0xff0000 } }).setDepth(100);
         const debugText = this.add.container().setDepth(100);
 
+        const clickButton = this.add.text(bounds[3]-100, bounds[1], 'Settings', { backgroundColor: '#000', color: '#fff' })
+        .setInteractive()
+        .setDepth(200)
+        .on('pointerdown', () => this.settingsScene.toggleVisibility());
+
         // Create noise texture and apply it as a bitmap
         const width = Math.ceil(Math.abs(bounds[0]) + Math.abs(bounds[2]))
         const height = Math.ceil(Math.abs(bounds[1]) + Math.abs(bounds[3]))
         const noiseTexture = createNoiseTexture(width, height, 0.3, 0.5, 1.2);
         const texture = this.textures.createCanvas('noise', width, height);
+
         texture.context.drawImage(noiseTexture, 0, 0);
         texture.refresh();
         this.add.image(bounds[0], bounds[1], 'noise').setBlendMode(Phaser.BlendModes.OVERLAY)
@@ -225,7 +268,7 @@ export default class MainScene extends Phaser.Scene {
             }
 
              // Check if this cell should start a river
-             if (jsonData[index].type === 'mountainpeak') {
+             if (rivers && jsonData[index].type === 'mountainpeak') {
                 const riverPath = findDownhillPath(index, jsonData, voronoi);
                 if (riverPath.length > 1) {
                     riverGraphics.beginPath();
@@ -239,5 +282,10 @@ export default class MainScene extends Phaser.Scene {
    
             index++  
         } 
+    }
+
+    clearMap() {
+        this.textures.remove('noise');
+        this.children.removeAll()
     }
 }

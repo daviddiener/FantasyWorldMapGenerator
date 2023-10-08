@@ -1,5 +1,5 @@
 {
-  "name": "FantasyWorldMapGenerator",
+  "name": "fantasy_world_map_generator",
   "version": "0.0.1",
   "description": "A map generator for fantasy world maps.",
   "main": "game.js",
@@ -23,6 +23,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "alea": "^1.0.1",
     "d3-delaunay": "^6.0.4",
     "phaser": "^3.55.2",
     "seedrandom": "^3.0.5",
