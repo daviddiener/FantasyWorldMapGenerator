@@ -53,7 +53,7 @@ export default class SettingsScene extends Phaser.Scene {
             width: '100px',
             fontSize: '14px',
             color: '#000',
-        }, 'SEED (default: random_seed_123123)');
+        }, 'Seed');
         
         const regionNumberInput = this.add.dom(-90, 10, 'input', {
             type: 'number',
